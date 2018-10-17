@@ -1,19 +1,26 @@
 #! /usr/bin/env bash
 set -e
+set -x
 
 # Automate the initial creation and update of an Ubuntu package mirror in aptly
 
-# The variables (as set below) will create a mirror of the Ubuntu Trusty repo 
+# The variables (as set below) will create a mirror of the Ubuntu repo
 # with the main & universe components, you can add other components like restricted
 # multiverse etc by adding to the array (separated by spaces).
 
-# For more detail about each of the variables below refer to: 
+# For more detail about each of the variables below refer to:
 # https://help.ubuntu.com/community/Repositories/CommandLine
 
-UBUNTU_RELEASE=bionic
+UBUNTU_RELEASE=xenial
 UPSTREAM_URL="http://archive.ubuntu.com/ubuntu/"
 COMPONENTS=( main universe )
 REPOS=( ${UBUNTU_RELEASE} ${UBUNTU_RELEASE}-updates ${UBUNTU_RELEASE}-security )
+MODE='packages' # packages - mirror specified packages or all
+if [ "$MODE" = "packages" ]; then
+    FILTER_OPTS=(-filter="$(cat /opt/packages | paste -sd \| -)" -filter-with-deps)
+else
+    FILTER_OPTS=()
+fi
 
 # Create repository mirrors if they don't exist
 set +e
@@ -23,7 +30,7 @@ for component in ${COMPONENTS[@]}; do
     if [[ $? -ne 0 ]]; then
       echo "Creating mirror of ${repo}-${component} repository."
       aptly mirror create \
-        -architectures=amd64 ${repo}-${component} ${UPSTREAM_URL} ${repo} ${component}
+        -architectures=amd64 "${FILTER_OPTS[@]}" ${repo}-${component} ${UPSTREAM_URL} ${repo} ${component}
     fi
   done
 done
@@ -49,7 +56,7 @@ done
 echo ${SNAPSHOTARRAY[@]}
 
 # Merge snapshots into a single snapshot with updates applied
-echo "Merging snapshots into one.." 
+echo "Merging snapshots into one.."
 aptly snapshot merge -latest                 \
   ${UBUNTU_RELEASE}-merged-`date +%Y%m%d%H`  \
   ${SNAPSHOTARRAY[@]}

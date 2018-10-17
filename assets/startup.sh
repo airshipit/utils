@@ -5,6 +5,8 @@
 # Copyright 2016 Bryan J. Hong
 # Licensed under the Apache License, Version 2.0
 
+set -o xtrace
+
 if [[ ! -f /root/.gnupg/gpg.conf ]]; then
   /opt/gpg.conf.sh
 fi
@@ -14,17 +16,13 @@ if [[ ! -f /opt/aptly/aptly.sec ]] || [[ ! -f /opt/aptly/aptly.pub ]]; then
   echo "Generating new gpg keys"
   cp -a /dev/urandom /dev/random
   /opt/gpg_batch.sh
+  mkdir -p /opt/aptly
   # If your system doesn't have a lot of entropy this may, take a long time
   # Google how-to create "artificial" entropy if this gets stuck
-  gpg --batch --gen-key /opt/gpg_batch
+  gpg -v --batch --gen-key /opt/gpg_batch
+
 else
   echo "No need to generate new gpg keys"
-fi
-
-# Export the GPG Public key
-if [[ ! -f /opt/aptly/public/aptly_repo_signing.key ]]; then
-  mkdir -p /opt/aptly/public
-  gpg --export --armor > /opt/aptly/public/aptly_repo_signing.key
 fi
 
 # Import Ubuntu keyrings if they exist
@@ -56,5 +54,4 @@ ln -sf /opt/aptly/aptly.pub /root/.gnupg/pubring.gpg
 # Generate Nginx Config
 /opt/nginx.conf.sh
 
-# Start Supervisor
-/usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf
+/opt/update_mirror_ubuntu.sh

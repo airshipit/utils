@@ -16,7 +16,7 @@
 
 FROM ubuntu:xenial
 
-LABEL maintainer="urpylka@gmail.com"
+LABEL maintainer="airship-team@att.com"
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -50,8 +50,15 @@ RUN rm /etc/nginx/sites-enabled/*
 COPY assets/supervisord.nginx.conf /etc/supervisor/conf.d/nginx.conf
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf
 
-# Bind mount location
-VOLUME [ "/opt/aptly" ]
+ENV FULL_NAME="First Last"
+ENV EMAIL_ADDRESS="youremail@example.com"
+ENV GPG_PASSWORD="PickAPassword"
+ENV HOSTNAME=localhost
+
+COPY assets/packages /opt/packages
+
+RUN /opt/startup.sh
 
 # Execute Startup script when container starts
-ENTRYPOINT [ "/opt/startup.sh" ]
+
+CMD [ "/opt/run.sh" ]
