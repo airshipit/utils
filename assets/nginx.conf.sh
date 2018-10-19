@@ -13,5 +13,7 @@ server {
   location / {
     autoindex on;
   }
+
+  include /opt/nginx/*.conf;
 }
 EOF

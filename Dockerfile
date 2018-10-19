@@ -61,4 +61,6 @@ RUN /opt/startup.sh
 
 # Execute Startup script when container starts
 
+VOLUME [ "/opt/nginx" ]
+
 CMD [ "/opt/run.sh" ]
