@@ -15,7 +15,7 @@ UBUNTU_RELEASE=xenial
 UPSTREAM_URL="http://archive.ubuntu.com/ubuntu/"
 COMPONENTS=( main universe )
 REPOS=( ${UBUNTU_RELEASE} ${UBUNTU_RELEASE}-updates ${UBUNTU_RELEASE}-security )
-MODE='packages' # packages - mirror specified packages or all
+
 if [ "$MODE" = "packages" ]; then
     FILTER_OPTS=(-filter="$(cat /opt/packages | paste -sd \| -)" -filter-with-deps)
 else

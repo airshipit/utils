@@ -55,6 +55,9 @@ ENV EMAIL_ADDRESS="youremail@example.com"
 ENV GPG_PASSWORD="PickAPassword"
 ENV HOSTNAME=localhost
 
+ARG MODE=packages
+ENV MODE ${MODE}
+
 COPY assets/packages /opt/packages
 
 RUN /opt/startup.sh
