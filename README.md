@@ -1,119 +1,64 @@
 # docker-aptly
 
-**docker-aptly** is container w `aptly` backed by `nginx`.
+## Features
 
-**aptly** is a swiss army knife for Debian repository management: it allows you to mirror remote repositories, manage local package repositories, take snapshots, pull new versions of packages along with dependencies, publish as Debian repository. More info are on [aptly.info](http://aptly.info) and on [github](https://github.com/aptly-dev/aptly).
-
-**nginx** is an HTTP and reverse proxy server, a mail proxy server, and a generic TCP proxy server, originally written by Igor Sysoev. More info is on [nginx.org](http://nginx.org/en/).
+- Packages are downloaded during the docker image build
+- GPG keys for signature may be generated during the docker image build or existing ones are used
+- Nginx blacklist support at runtime
 
 ## Quickstart
 
-The following command will run `aptly` and `nginx` in a container:
+The main difference with the upstream repo is packages saved inside a docker image.
+During the image building /opt/update_mirror_ubuntu.sh is called to create mirrors, update them,
+merge all in one snapshot and publish it. By default, a new GPG key is generated for making a signature for repo.
 
-```bash
-docker run \
-  --detach=true \
-  --log-driver=syslog \
-  --restart=always \
-  --name="aptly" \
-  --publish 80:80 \
-  --volume $(pwd)/aptly_files:/opt/aptly \
-  --env FULL_NAME="First Last" \
-  --env EMAIL_ADDRESS="youremail@example.com" \
-  --env GPG_PASSWORD="PickAPassword" \
-  --env HOSTNAME=aptly.example.com \
-  smirart/aptly:latest
-```
+There are two modes: filtered build that fetches only packages specified in assets/packages and
+unfiltered build that fetches all packages. The filtered build is used by default.
 
-### Explane of the flags
-
-Flag | Description
---- | ---
-`--detach=true` | Run the container in the background
-`--log-driver=syslog` | Send nginx logs to syslog on the Docker host  (requires Docker 1.6 or higher)
-`--restart=always` | Automatically start the container when the Docker daemon starts
-`--name="aptly"` | Name of the container
-`--volume $(pwd)/aptly:/opt/aptly` | Path that aptly will use to store its data : mapped path in the container
-`--publish 80:80` | Docker host port : mapped port in the container
-`--env FULL_NAME="First Last"` | The first and last name that will be associated with the GPG apt signing key
-`--env EMAIL_ADDRESS="your@email.com"` | The email address that will be associated with the GPG apt signing key
-`--env GPG_PASSWORD="PickAPassword"` | The password that will be used to encrypt the GPG apt signing key
-`--env HOSTNAME=aptly.example.com` | The hostname of the Docker host that this container is running on
-
-## Setup a client for use your repo
-
-1. Fetch the public PGP key from your aptly repository and add it to your trusted repositories
-
-    ```bash
-    wget http://YOUR_HOST_FOR_APTLY/aptly_repo_signing.key
-    apt-key add aptly_repo_signing.key
-    ```
-
-2. Backup then replace /etc/apt/sources.list
-
-    ```bash
-    cp /etc/apt/sources.list /etc/apt/sources.list.bak
-    echo "deb http://YOUR_HOST_FOR_APTLY/ ubuntu main" > /etc/apt/sources.list
-    apt-get update
-    ```
-
-    > `ubuntu` & `main` may be another. It's require from your repos on aptly.
-
-## Configure the container
-
-For attach to the container and start to configure your aptly use:
-
-```bash
-docker exec -it aptly /bin/bash
-```
-
-Read [the official documentation](https://www.aptly.info/doc/overview/) for learn more about aptly.
-
-For stop container use:
-
-```bash
-docker stop aptly
-```
-
-### Create a mirror of Ubuntu's main repository
-
-1. Attach to the container. How attach? See [Configure the container](#configure-the-container).
-2. Run `/opt/update_mirror_ubuntu.sh`.
-
-By default, this script will automate the creation of an Ubuntu 14.04 Trusty repository with the main and universe components, you can adjust the variables in the script to suit your needs.
-
-> If the script fails due to network disconnects etc, just re-run it.
-
- The initial download of the repository may take quite some time depending on your bandwidth limits, it may be in your best interest to open a screen, tmux or byobu session before proceeding.
-
-> For host a mirror of Ubuntu's main repository, you'll need upwards of 80GB+ (x86_64 only) of free space as of Feb 2016, plan for growth.
-
-When the script completes, you should have a functional mirror that you can point a client to.
-
-For create Debian's mirror use `/opt/update_mirror_debian.sh`.
-
-## Building the container
-
-If you want to customize image or build the container locally, check out this repository and build after:
+To fetch all packages the following command can be used:
 
 ```bash
 git clone https://github.com/urpylka/docker-aptly.git
-docker build docker-aptly
+docker build docker-aptly --build-arg MODE=all
 ```
 
-## How this image/container works
+By default GPG key for making package signature are generated during the build.
+You may configure GPG key params via build arguments: FULL_NAME, EMAIL_ADDRESS, and GPG_PASSWORD, like:
 
-**Data**  
-All of aptly's data (including PGP keys and GPG keyrings) is bind mounted outside of the container to preserve it if the container is removed or rebuilt.
+```bash
+docker build docker-aptly \
+  --build-arg FULL_NAME="First Last" \
+  --build-arg EMAIL_ADDRESS="youremail@example.com" \
+  --build-arg GPG_PASSWORD="PickAPassword"
+```
 
-**Networking**  
-By default, Docker will map port 80 on the Docker host to port 80 within the container where nginx is configured to listen. You can change the external listening port to map to any port you like. (See [Explane of the flags](#explane-of-the-flags)).
+If you have a GPG key already you can put private and public key in assets/gpg dir.
+Keys must have special names: aptly.sec and aptly.pub
+For example:
 
-**Security**  
-The GPG password which you specified in `GPG_PASSWORD` is stored in plain text and visible as an environment variable inside the container.
-It is set as an enviornment variable to allow for automation of repository updates without user interaction. The GPG password can be removed completely but it is safer to encrypt the GPG keyrings because they are bind mounted outside the container to avoid the necessity of regenerating/redistributing keys if the container is removed or rebuilt.
+```bash
+cp <my private key> docker-aptly/assets/gpg/aptly.sec
+cp <my public key> docker-aptly/assets/gpg/aptly.pub
 
+docker build docker-aptly \
+  --build-arg GPG_PASSWORD="GPG passphrase for my private key"
+```
+
+To use the Nginx blacklist feature a volume with Nginx config has to be mounted at runtime.
+By default, the following keywords are blocked: telnet, ftp.
+If no volume is mounted then no blacklist will be used.
+
+```bash
+docker run \
+  --name aptly \
+  --detach \
+  --publish 8080:80 \
+  --volume $(pwd)/assets/nginx:/opt/nginx \
+  aptly:test
+```
 ___
+
+For additional docs see https://github.com/amadev/docker-aptly
 
 * Copyright 2018 Artem B. Smirnov
 * Copyright 2016 Bryan J. Hong
