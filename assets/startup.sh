@@ -16,7 +16,6 @@ if [[ ! -f /opt/aptly/aptly.sec ]] || [[ ! -f /opt/aptly/aptly.pub ]]; then
   echo "Generating new gpg keys"
   cp -a /dev/urandom /dev/random
   /opt/gpg_batch.sh
-  mkdir -p /opt/aptly
   # If your system doesn't have a lot of entropy this may, take a long time
   # Google how-to create "artificial" entropy if this gets stuck
   gpg -v --batch --gen-key /opt/gpg_batch

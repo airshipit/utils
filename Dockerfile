@@ -63,6 +63,7 @@ ENV HOSTNAME ${HOSTNAME}
 ENV MODE ${MODE}
 
 COPY assets/packages /opt/packages
+COPY assets/gpg/* /opt/aptly/
 
 RUN /opt/startup.sh
 
