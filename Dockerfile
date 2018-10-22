@@ -50,12 +50,16 @@ RUN rm /etc/nginx/sites-enabled/*
 COPY assets/supervisord.nginx.conf /etc/supervisor/conf.d/nginx.conf
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf
 
-ENV FULL_NAME="First Last"
-ENV EMAIL_ADDRESS="youremail@example.com"
-ENV GPG_PASSWORD="PickAPassword"
-ENV HOSTNAME=localhost
-
+ARG FULL_NAME="First Last"
+ARG EMAIL_ADDRESS="youremail@example.com"
+ARG GPG_PASSWORD="PickAPassword"
+ARG HOSTNAME=localhost
 ARG MODE=packages
+
+ENV FULL_NAME ${FULL_NAME}
+ENV EMAIL_ADDRESS ${EMAIL_ADDRESS}
+ENV GPG_PASSWORD ${GPG_PASSWORD}
+ENV HOSTNAME ${HOSTNAME}
 ENV MODE ${MODE}
 
 COPY assets/packages /opt/packages
