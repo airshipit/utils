@@ -11,11 +11,6 @@ set -x
 # For more detail about each of the variables below refer to:
 # https://help.ubuntu.com/community/Repositories/CommandLine
 
-UBUNTU_RELEASE=xenial
-UPSTREAM_URL="http://archive.ubuntu.com/ubuntu/"
-COMPONENTS=( main universe )
-REPOS=( ${UBUNTU_RELEASE} ${UBUNTU_RELEASE}-updates ${UBUNTU_RELEASE}-security )
-
 if [ "$MODE" = "packages" ]; then
     FILTER_OPTS=(-filter="$(cat /opt/packages | paste -sd \| -)" -filter-with-deps)
 else
@@ -24,8 +19,8 @@ fi
 
 # Create repository mirrors if they don't exist
 set +e
-for component in ${COMPONENTS[@]}; do
-  for repo in ${REPOS[@]}; do
+for component in ${COMPONENTS}; do
+  for repo in ${REPOS}; do
     aptly mirror list -raw | grep "^${repo}-${component}$"
     if [[ $? -ne 0 ]]; then
       echo "Creating mirror of ${repo}-${component} repository."
@@ -37,16 +32,16 @@ done
 set -e
 
 # Update all repository mirrors
-for component in ${COMPONENTS[@]}; do
-  for repo in ${REPOS[@]}; do
+for component in ${COMPONENTS}; do
+  for repo in ${REPOS}; do
     echo "Updating ${repo}-${component} repository mirror.."
     aptly mirror update ${repo}-${component}
   done
 done
 
 # Create snapshots of updated repositories
-for component in ${COMPONENTS[@]}; do
-  for repo in ${REPOS[@]}; do
+for component in ${COMPONENTS}; do
+  for repo in ${REPOS}; do
     echo "Creating snapshot of ${repo}-${component} repository mirror.."
     SNAPSHOTARRAY+="${repo}-${component}-`date +%Y%m%d%H` "
     aptly snapshot create ${repo}-${component}-`date +%Y%m%d%H` from mirror ${repo}-${component}
