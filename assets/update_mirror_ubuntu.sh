@@ -16,65 +16,65 @@ if [ "$MODE" = "packages" ]; then
         echo "File with a package list is not found"
         exit 1
     fi
-    FILTER_OPTS=(-filter="$(cat /opt/packages/$PACKAGE_FILE | paste -sd \| -)" -filter-with-deps)
+    FILTER_VAL=$(paste -sd \| "/opt/packages/$PACKAGE_FILE")
+    FILTER_OPTS=("-filter=$FILTER_VAL" "-filter-with-deps")
 else
     FILTER_OPTS=()
 fi
 
+REPO_DATE=$(date +%Y%m%d%H)
+
 # Create repository mirrors if they don't exist
-set +e
 for component in ${COMPONENTS}; do
   for repo in ${REPOS}; do
-    aptly mirror list -raw | grep "^${repo}-${component}$"
-    if [[ $? -ne 0 ]]; then
+    if ! aptly mirror list -raw | grep "^${repo}-${component}$"
+    then
       echo "Creating mirror of ${repo}-${component} repository."
       aptly mirror create \
-        -architectures=amd64 "${FILTER_OPTS[@]}" ${repo}-${component} ${UPSTREAM_URL} ${repo} ${component}
+        -architectures=amd64 "${FILTER_OPTS[@]}" "${repo}-${component}" "${UPSTREAM_URL}" "${repo}" "${component}"
     fi
   done
 done
-set -e
 
 # Update all repository mirrors
 for component in ${COMPONENTS}; do
   for repo in ${REPOS}; do
     echo "Updating ${repo}-${component} repository mirror.."
-    aptly mirror update ${repo}-${component}
+    aptly mirror update "${repo}-${component}"
   done
 done
 
+SNAPSHOTARRAY=()
 # Create snapshots of updated repositories
 for component in ${COMPONENTS}; do
   for repo in ${REPOS}; do
     echo "Creating snapshot of ${repo}-${component} repository mirror.."
-    SNAPSHOTARRAY+="${repo}-${component}-`date +%Y%m%d%H` "
-    aptly snapshot create ${repo}-${component}-`date +%Y%m%d%H` from mirror ${repo}-${component}
+    SNAPSHOTARRAY+=("${repo}-${component}-$REPO_DATE")
+    aptly snapshot create "${repo}-${component}-$REPO_DATE" from mirror "${repo}-${component}"
   done
 done
 
-echo ${SNAPSHOTARRAY[@]}
+echo "${SNAPSHOTARRAY[@]}"
 
 # Merge snapshots into a single snapshot with updates applied
 echo "Merging snapshots into one.."
 aptly snapshot merge -latest                 \
-  ${UBUNTU_RELEASE}-merged-`date +%Y%m%d%H`  \
-  ${SNAPSHOTARRAY[@]}
+  "${UBUNTU_RELEASE}-merged-$REPO_DATE"  \
+  "${SNAPSHOTARRAY[@]}"
 
 # Publish the latest merged snapshot
-set +e
-aptly publish list -raw | awk '{print $2}' | grep "^${UBUNTU_RELEASE}$"
-if [[ $? -eq 0 ]]; then
+if aptly publish list -raw | awk '{print $2}' | grep "^${UBUNTU_RELEASE}$"
+then
   aptly publish switch            \
     -batch=true \
     -passphrase="${GPG_PASSWORD}" \
-    ${UBUNTU_RELEASE} ${UBUNTU_RELEASE}-merged-`date +%Y%m%d%H`
+    "${UBUNTU_RELEASE}" "${UBUNTU_RELEASE}-merged-$REPO_DATE"
 else
   aptly publish snapshot \
     -batch=true \
     -passphrase="${GPG_PASSWORD}" \
-    -distribution=${UBUNTU_RELEASE} ${UBUNTU_RELEASE}-merged-`date +%Y%m%d%H`
+    -distribution="${UBUNTU_RELEASE}" "${UBUNTU_RELEASE}-merged-$REPO_DATE"
 fi
-set -e
 
 # Export the GPG Public key
 if [[ ! -f /opt/aptly/public/aptly_repo_signing.key ]]; then
