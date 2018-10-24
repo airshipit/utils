@@ -81,4 +81,4 @@ RUN /opt/startup.sh
 
 VOLUME [ "/opt/nginx" ]
 
-CMD [ "/opt/run.sh" ]
+CMD [ "/opt/run_supervisord.sh" ]

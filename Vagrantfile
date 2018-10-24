@@ -93,7 +93,8 @@ Vagrant.configure("2") do |config|
       d.build_image "/home/vagrant/docker-aptly -t aptly:test --build-arg PACKAGE_FILE=list"
       d.run "aptly",
             args: "-p '8080:80' -v '/home/vagrant/docker-aptly/assets/nginx:/opt/nginx'",
-            image: "aptly:test"
+            image: "aptly:test",
+            cmd: "/opt/run_nginx.sh"
     end
 
     node.vm.provision :shell, inline: <<-SHELL
