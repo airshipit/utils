@@ -15,3 +15,4 @@
 .PHONY: lint
 lint:
 	shellcheck assets/*.sh
+	hadolint Dockerfile
