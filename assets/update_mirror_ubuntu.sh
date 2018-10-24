@@ -12,7 +12,11 @@ set -x
 # https://help.ubuntu.com/community/Repositories/CommandLine
 
 if [ "$MODE" = "packages" ]; then
-    FILTER_OPTS=(-filter="$(cat /opt/packages | paste -sd \| -)" -filter-with-deps)
+    if [ ! -f "/opt/packages/$PACKAGE_FILE" ]; then
+        echo "File with a package list is not found"
+        exit 1
+    fi
+    FILTER_OPTS=(-filter="$(cat /opt/packages/$PACKAGE_FILE | paste -sd \| -)" -filter-with-deps)
 else
     FILTER_OPTS=()
 fi

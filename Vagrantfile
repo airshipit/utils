@@ -82,15 +82,15 @@ Vagrant.configure("2") do |config|
     node.vm.provision "file", source: ".", destination: "$HOME/docker-aptly"
 
     node.vm.provision :shell, inline: <<-SHELL
-       echo htop > /home/vagrant/docker-aptly/assets/packages
-       echo telnetd >> /home/vagrant/docker-aptly/assets/packages
-       echo openbsd-inetd >> /home/vagrant/docker-aptly/assets/packages
-       echo inet-superserver >> /home/vagrant/docker-aptly/assets/packages
-       echo 'mysql-client (>= 3.6)' >> /home/vagrant/docker-aptly/assets/packages
+       echo htop > /home/vagrant/docker-aptly/assets/packages/list
+       echo telnetd >> /home/vagrant/docker-aptly/assets/packages/list
+       echo openbsd-inetd >> /home/vagrant/docker-aptly/assets/packages/list
+       echo inet-superserver >> /home/vagrant/docker-aptly/assets/packages/list
+       echo 'mysql-client (>= 3.6)' >> /home/vagrant/docker-aptly/assets/packages/list
     SHELL
 
     node.vm.provision "docker" do |d|
-      d.build_image "/home/vagrant/docker-aptly -t aptly:test"
+      d.build_image "/home/vagrant/docker-aptly -t aptly:test --build-arg PACKAGE_FILE=list"
       d.run "aptly",
             args: "-p '8080:80' -v '/home/vagrant/docker-aptly/assets/nginx:/opt/nginx'",
             image: "aptly:test"

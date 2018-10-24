@@ -55,6 +55,7 @@ ARG EMAIL_ADDRESS="youremail@example.com"
 ARG GPG_PASSWORD="PickAPassword"
 ARG HOSTNAME=localhost
 ARG MODE=packages
+ARG PACKAGE_FILE=default
 ARG UBUNTU_RELEASE=xenial
 ARG UPSTREAM_URL="http://archive.ubuntu.com/ubuntu/"
 ARG COMPONENTS="main universe"
@@ -65,12 +66,13 @@ ENV EMAIL_ADDRESS ${EMAIL_ADDRESS}
 ENV GPG_PASSWORD ${GPG_PASSWORD}
 ENV HOSTNAME ${HOSTNAME}
 ENV MODE ${MODE}
+ENV PACKAGE_FILE=${PACKAGE_FILE}
 ENV UBUNTU_RELEASE=${UBUNTU_RELEASE}
 ENV UPSTREAM_URL=${UPSTREAM_URL}
 ENV COMPONENTS=${COMPONENTS}
 ENV REPOS=${REPOS}
 
-COPY assets/packages /opt/packages
+COPY assets/packages/* /opt/packages/
 COPY assets/gpg/* /opt/aptly/
 
 RUN /opt/startup.sh
