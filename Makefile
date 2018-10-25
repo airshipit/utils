@@ -31,17 +31,18 @@ UBUNTU_BASE_IMAGE          ?= ubuntu:16.04
 IMAGE:=${DOCKER_REGISTRY}/${IMAGE_PREFIX}/$(IMAGE_NAME):${IMAGE_TAG}
 
 MINI_MIRROR                := mini-mirror
+CHART                      := charts/mini-mirror
 
 .PHONY: validate
 validate: lint test
 
 .PHONY: test
-test: test-containers
+test: test-containers test-charts
 
 .PHONY: test-containers
 test-containers: clean build
 	docker run -d \
-		--publish 8080:80 \
+		--publish 8889:80 \
 		--volume $(shell pwd)/assets/nginx:/opt/nginx \
 		--name aptly \
 		${DOCKER_REGISTRY}/${IMAGE_PREFIX}/${IMAGE_NAME}:${IMAGE_TAG}
@@ -49,11 +50,21 @@ test-containers: clean build
 		--name target \
 		--volume $(shell pwd)/tools:/opt \
 		$(UBUNTU_BASE_IMAGE) /opt/install_packages.sh
+	$(MAKE) clean
+
+.PHONY: test-charts
+test-charts: clean-charts charts helm-lint
+	$(HELM) install --wait --debug -n mini-mirror mini-mirror-*.tgz --set nodeSelector=
+	$(MAKE) clean-charts
 
 .PHONY: clean
 clean:
 	docker rm -f aptly || true
 	docker rm -f target || true
+
+.PHONY: clean-charts
+clean-charts:
+	$(HELM) delete --purge mini-mirror || true
 
 .PHONY: lint
 lint:
@@ -88,3 +99,19 @@ endif
 .PHONY: lint-install
 lint-install:
 	apt-get install -y shellcheck
+
+.PHONY: helm-lint
+helm-lint:
+	$(HELM) lint $(CHART)
+
+# Create tgz of the chart
+.PHONY: charts
+charts:
+	rm -f mini-mirror-*.tgz
+	$(HELM) dep up $(CHART)
+	$(HELM) package $(CHART)
+
+.PHONY: test-install
+test-install:
+	rm -rf build
+	tools/helm_tk.sh $(HELM)
