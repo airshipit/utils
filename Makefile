@@ -14,13 +14,13 @@
 
 IMAGE_PREFIX               ?= airshipit
 IMAGE_TAG                  ?= untagged
-IMAGE_NAME                 := aptly
+IMAGE_NAME                 := mini-mirror
 COMMIT                     ?= commit-id
 
 DOCKER_REGISTRY            ?= quay.io
 PUSH_IMAGE                 ?= false
 
-HELM                       := $(BUILD_DIR)/helm
+HELM                       := helm
 
 PROXY                      ?= http://proxy.foo.com:8000
 NO_PROXY                   ?= localhost,127.0.0.1,.svc.cluster.local
@@ -30,11 +30,13 @@ UBUNTU_BASE_IMAGE          ?= ubuntu:16.04
 
 IMAGE:=${DOCKER_REGISTRY}/${IMAGE_PREFIX}/$(IMAGE_NAME):${IMAGE_TAG}
 
+CHART                       := charts/mini-mirror
+
 .PHONY: validate
 validate: lint tests
 
 .PHONY: tests
-tests: tests-containers
+tests: tests-containers tests-charts
 
 .PHONY: tests-containers
 tests-containers: clean build
@@ -47,6 +49,11 @@ tests-containers: clean build
 		--name target \
 		--volume $(shell pwd)/tools:/opt \
 		$(UBUNTU_BASE_IMAGE) /opt/install_packages.sh
+
+.PHONY: tests-charts
+tests-charts: helm-lint charts
+	$(HELM) delete mini-mirror || true
+	$(HELM) install --debug -n mini-mirror mini-mirror-*.tgz
 
 .PHONY: clean
 clean:
@@ -86,3 +93,13 @@ endif
 .PHONY: prepare
 prepare:
 	apt-get install -y shellcheck
+
+.PHONY: helm-lint
+helm-lint:
+	$(HELM) lint $(CHART)
+
+# Create tgz of the chart
+.PHONY: charts
+charts:
+	$(HELM) dep up $(CHART)
+	$(HELM) package $(CHART)
