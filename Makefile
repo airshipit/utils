@@ -14,13 +14,13 @@
 
 IMAGE_PREFIX               ?= airshipit
 IMAGE_TAG                  ?= untagged
-IMAGE_NAME                 := aptly
+IMAGE_NAME                 := mini-mirror
 COMMIT                     ?= commit-id
 
 DOCKER_REGISTRY            ?= quay.io
 PUSH_IMAGE                 ?= false
 
-HELM                       := $(BUILD_DIR)/helm
+HELM                       := helm
 
 PROXY                      ?= http://proxy.foo.com:8000
 NO_PROXY                   ?= localhost,127.0.0.1,.svc.cluster.local
@@ -30,11 +30,13 @@ UBUNTU_BASE_IMAGE          ?= ubuntu:16.04
 
 IMAGE:=${DOCKER_REGISTRY}/${IMAGE_PREFIX}/$(IMAGE_NAME):${IMAGE_TAG}
 
+CHART                       := charts/mini-mirror
+
 .PHONY: validate
-validate: lint tests
+validate: lint tests charts
 
 .PHONY: tests
-tests: clean build
+tests: clean-containers build
 	docker run -d \
 		--publish 8080:80 \
 		--volume $(shell pwd)/assets/nginx:/opt/nginx \
@@ -45,13 +47,13 @@ tests: clean build
 		--volume $(shell pwd)/tools:/opt \
 		$(UBUNTU_BASE_IMAGE) /opt/install_packages.sh
 
-.PHONY: clean
-clean:
+.PHONY: clean-containers
+clean-containers:
 	docker rm -f aptly || true
 	docker rm -f target || true
 
 .PHONY: lint
-lint:
+lint: helm-lint
 	shellcheck assets/*.sh
 	hadolint Dockerfile
 
@@ -79,3 +81,13 @@ endif
 ifeq ($(PUSH_IMAGE), true)
 	docker push $(IMAGE)
 endif
+
+.PHONY: helm-lint
+helm-lint:
+	$(HELM) lint $(CHART)
+
+# Create tgz of the chart
+.PHONY: charts
+charts:
+	$(HELM) dep up $(CHART)
+	$(HELM) package $(CHART)
