@@ -35,7 +35,7 @@ RUN apt-get -q update \
     nginx=1.10.3-0ubuntu0.16.04.2 \
     wget=1.17.1-1ubuntu1.4 \
     xz-utils=5.1.1alpha+20120614-2ubuntu2 \
-    apt-utils=1.2.27 \
+    apt-utils=1.2.29 \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 

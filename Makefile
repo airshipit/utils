@@ -31,10 +31,13 @@ UBUNTU_BASE_IMAGE          ?= ubuntu:16.04
 IMAGE:=${DOCKER_REGISTRY}/${IMAGE_PREFIX}/$(IMAGE_NAME):${IMAGE_TAG}
 
 .PHONY: validate
-validate: lint tests
+validate: lint test
 
-.PHONY: tests
-tests: clean build
+.PHONY: test
+test: test-containers
+
+.PHONY: test-containers
+test-containers: clean build
 	docker run -d \
 		--publish 8080:80 \
 		--volume $(shell pwd)/assets/nginx:/opt/nginx \
@@ -53,7 +56,7 @@ clean:
 .PHONY: lint
 lint:
 	shellcheck assets/*.sh
-	hadolint Dockerfile
+	docker run --rm -i hadolint/hadolint < Dockerfile
 
 .PHONY: build
 build:
@@ -79,3 +82,7 @@ endif
 ifeq ($(PUSH_IMAGE), true)
 	docker push $(IMAGE)
 endif
+
+.PHONY: prepare
+lint-install:
+	apt-get install -y shellcheck
