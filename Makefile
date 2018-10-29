@@ -34,7 +34,10 @@ IMAGE:=${DOCKER_REGISTRY}/${IMAGE_PREFIX}/$(IMAGE_NAME):${IMAGE_TAG}
 validate: lint tests
 
 .PHONY: tests
-tests: clean build
+tests: tests-containers
+
+.PHONY: tests-containers
+tests-containers: clean build
 	docker run -d \
 		--publish 8080:80 \
 		--volume $(shell pwd)/assets/nginx:/opt/nginx \
@@ -53,7 +56,7 @@ clean:
 .PHONY: lint
 lint:
 	shellcheck assets/*.sh
-	hadolint Dockerfile
+	docker run --rm -i hadolint/hadolint < Dockerfile
 
 .PHONY: build
 build:
@@ -79,3 +82,7 @@ endif
 ifeq ($(PUSH_IMAGE), true)
 	docker push $(IMAGE)
 endif
+
+.PHONY: prepare
+prepare:
+	apt-get install -y shellcheck
