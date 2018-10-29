@@ -14,13 +14,13 @@
 
 IMAGE_PREFIX               ?= airshipit
 IMAGE_TAG                  ?= untagged
-IMAGE_NAME                 := aptly
+IMAGE_NAME                 := mini-mirror
 COMMIT                     ?= commit-id
 
 DOCKER_REGISTRY            ?= quay.io
 PUSH_IMAGE                 ?= false
 
-HELM                       := $(BUILD_DIR)/helm
+HELM                       := helm
 
 PROXY                      ?= http://proxy.foo.com:8000
 NO_PROXY                   ?= localhost,127.0.0.1,.svc.cluster.local
@@ -30,11 +30,16 @@ UBUNTU_BASE_IMAGE          ?= ubuntu:16.04
 
 IMAGE:=${DOCKER_REGISTRY}/${IMAGE_PREFIX}/$(IMAGE_NAME):${IMAGE_TAG}
 
-.PHONY: validate
-validate: lint tests
+MINI_MIRROR                := mini-mirror
 
-.PHONY: tests
-tests: clean build
+.PHONY: validate
+validate: lint test
+
+.PHONY: test
+test: test-containers
+
+.PHONY: test-containers
+test-containers: clean build
 	docker run -d \
 		--publish 8080:80 \
 		--volume $(shell pwd)/assets/nginx:/opt/nginx \
@@ -52,13 +57,13 @@ clean:
 
 .PHONY: lint
 lint:
-	shellcheck assets/*.sh
-	hadolint Dockerfile
+	shellcheck $(MINI_MIRROR)/assets/*.sh
+	docker run --rm -i hadolint/hadolint <  $(MINI_MIRROR)/Dockerfile
 
 .PHONY: build
 build:
 ifeq ($(USE_PROXY), true)
-	docker build --network host -t $(IMAGE) \
+	cd $(MINI_MIRROR); docker build --network host -t $(IMAGE) \
 		--label "org.opencontainers.image.revision=$(COMMIT)" \
 		--label "org.opencontainers.image.created=$(shell date --rfc-3339=seconds --utc)" \
 		--label "org.opencontainers.image.title=$(IMAGE_NAME)" \
@@ -70,7 +75,7 @@ ifeq ($(USE_PROXY), true)
 		--build-arg no_proxy=$(NO_PROXY) \
 		--build-arg NO_PROXY=$(NO_PROXY) .
 else
-	docker build --network host -t $(IMAGE) \
+	cd $(MINI_MIRROR); docker build --network host -t $(IMAGE) \
 		--label "org.opencontainers.image.revision=$(COMMIT)" \
 		--label "org.opencontainers.image.created=$(shell date --rfc-3339=seconds --utc)" \
 		--label "org.opencontainers.image.title=$(IMAGE_NAME)" \
@@ -79,3 +84,7 @@ endif
 ifeq ($(PUSH_IMAGE), true)
 	docker push $(IMAGE)
 endif
+
+.PHONY: lint-install
+lint-install:
+	apt-get install -y shellcheck

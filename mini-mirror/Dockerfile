@@ -32,10 +32,10 @@ RUN apt-get -q update \
     gpgv=1.4.20-1ubuntu3.3 \
     graphviz=2.38.0-12ubuntu2.1 \
     supervisor=3.2.0-2ubuntu0.2 \
-    nginx=1.10.3-0ubuntu0.16.04.2 \
+    nginx=1.10.3-0ubuntu0.16.04.3 \
     wget=1.17.1-1ubuntu1.4 \
     xz-utils=5.1.1alpha+20120614-2ubuntu2 \
-    apt-utils=1.2.27 \
+    apt-utils=1.2.29 \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 

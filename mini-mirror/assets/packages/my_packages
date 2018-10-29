@@ -1,0 +1,5 @@
+mysql-client-5.7 (= 5.7.24-0ubuntu0.16.04.1)
+mysql-client-core-5.7
+postgresql-client-9.5 (= 9.5.14-0ubuntu0.16.04)
+postgresql-client-common
+telnet
