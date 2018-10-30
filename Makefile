@@ -52,7 +52,7 @@ test-containers: clean build
 
 .PHONY: test-charts
 test-charts: helm-lint charts
-	$(HELM) delete mini-mirror || true
+	$(HELM) delete --purge mini-mirror || true
 	$(HELM) install --debug -n mini-mirror mini-mirror-*.tgz
 
 .PHONY: clean
@@ -101,5 +101,11 @@ helm-lint:
 # Create tgz of the chart
 .PHONY: charts
 charts:
+	rm -f mini-mirror-*.tgz
 	$(HELM) dep up $(CHART)
 	$(HELM) package $(CHART)
+
+.PHONY: htk-install
+tests-install:
+	rm -rf build
+	tools/helm_tk.sh $(HELM)
