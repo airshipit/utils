@@ -51,8 +51,8 @@ test-containers: clean build
 		$(UBUNTU_BASE_IMAGE) /opt/install_packages.sh
 
 .PHONY: test-charts
-test-charts: helm-lint charts
-	$(HELM) delete mini-mirror || true
+test-charts: charts helm-lint
+	$(HELM) delete --purge mini-mirror || true
 	$(HELM) install --debug -n mini-mirror mini-mirror-*.tgz
 
 .PHONY: clean
@@ -101,5 +101,11 @@ helm-lint:
 # Create tgz of the chart
 .PHONY: charts
 charts:
+	rm -f mini-mirror-*.tgz
 	$(HELM) dep up $(CHART)
 	$(HELM) package $(CHART)
+
+.PHONY: test-install
+test-install:
+	rm -rf build
+	tools/helm_tk.sh $(HELM)
