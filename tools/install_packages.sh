@@ -9,5 +9,8 @@ apt install -y curl
 curl -s localhost:8889/aptly_repo_signing.key | apt-key add -
 echo 'deb http://localhost:8889 xenial main' > /etc/apt/sources.list
 apt-get update
-apt-cache policy accountsservice
-apt-get install -y accountsservice
+PACKAGES=${PACKAGES:-accountsservice}
+for package in $PACKAGES; do
+    apt-cache policy "$package"
+    apt-get install -y "$package"
+done
