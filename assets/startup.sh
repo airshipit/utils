@@ -46,6 +46,11 @@ if [[ -f /usr/share/keyrings/debian-archive-keyring.gpg ]]; then
       --import
 fi
 
+if [ ! -z "$UPSTREAM_KEY_URL" ]; then
+    wget -O -  "$UPSTREAM_KEY_URL" | gpg --no-default-keyring \
+        --keyring trustedkeys.gpg --import
+fi
+
 # Aptly looks in /root/.gnupg for default keyrings
 ln -sf /opt/aptly/aptly.sec /root/.gnupg/secring.gpg
 ln -sf /opt/aptly/aptly.pub /root/.gnupg/pubring.gpg
