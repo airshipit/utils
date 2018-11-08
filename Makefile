@@ -33,6 +33,10 @@ IMAGE:=${DOCKER_REGISTRY}/${IMAGE_PREFIX}/$(IMAGE_NAME):${IMAGE_TAG}
 MINI_MIRROR                := mini-mirror
 CHART                      := charts/mini-mirror
 
+UPSTREAM_URL               ?= http://archive.ubuntu.com/ubuntu/
+UPSTREAM_KEY_URL           ?=
+COMPONENTS                 ?= main
+
 .PHONY: validate
 validate: lint test
 
@@ -84,13 +88,21 @@ ifeq ($(USE_PROXY), true)
 		--build-arg HTTP_PROXY=$(PROXY) \
 		--build-arg HTTPS_PROXY=$(PROXY) \
 		--build-arg no_proxy=$(NO_PROXY) \
-		--build-arg NO_PROXY=$(NO_PROXY) .
+		--build-arg NO_PROXY=$(NO_PROXY) \
+		--build-arg UPSTREAM_URL=$(UPSTREAM_URL) \
+		--build-arg UPSTREAM_KEY_URL=$(UPSTREAM_KEY_URL) \
+		--build-arg COMPONENTS=$(COMPONENTS) \
+		.
 else
 	cd $(MINI_MIRROR); docker build --network host -t $(IMAGE) \
 		--label "org.opencontainers.image.revision=$(COMMIT)" \
 		--label "org.opencontainers.image.created=$(shell date --rfc-3339=seconds --utc)" \
 		--label "org.opencontainers.image.title=$(IMAGE_NAME)" \
-		-f Dockerfile .
+		-f Dockerfile \
+		--build-arg UPSTREAM_URL=$(UPSTREAM_URL) \
+		--build-arg UPSTREAM_KEY_URL=$(UPSTREAM_KEY_URL) \
+		--build-arg COMPONENTS=$(COMPONENTS) \
+		.
 endif
 ifeq ($(PUSH_IMAGE), true)
 	docker push $(IMAGE)
